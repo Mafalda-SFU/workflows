@@ -1,0 +1,387 @@
+name: schedule (check and update)
+
+on:
+  workflow_call:
+    inputs:
+      # common
+      node_auth_token:
+        description: Node auth token to use to install git dependencies
+        default: ${{ secrets.GITHUB_TOKEN }}
+        type: string
+      node-version:
+        description: Node version to use
+        type: string
+      reference-package-name:
+        description: Reference package name to check for version update
+        required: true
+        type: string
+      registry-url:
+        description: NPM registry URL to use
+        type: string
+
+      # Update
+      dependencies-update-latest:
+        description: Dependencies to update to latest version, can be a glob
+        type: string
+
+      # Docs
+      destination-github-username:
+        description: GitHub username to use to push docs to web page git repository
+        default: ${{ github.repository_owner }}
+        type: string
+      destination-repository-name:
+        description: Repository name to use to push docs to web page git repository
+        required: true
+        type: string
+      docs-coverage_gistID:
+        description: Gist ID to update the docs coverage badge
+        required: true
+        type: string
+      source-directory:
+        description: Source directory to copy to web page git repository
+        default: docs
+        type: string
+      user-email:
+        description: User email to use to push docs to web page git repository
+        required: true
+        type: string
+      user-name:
+        description: User name to use to push docs to web page git repository
+        default: ${{ github.actor }}
+        type: string
+
+      # Publish Github Package Registry
+      gpr-npm-version_gistID:
+        description: Gist ID to update the GitHub Package Registry badge
+        required: true
+        type: string
+
+    outputs:
+      new_version:
+        description: New version to update to
+        value: ${{ steps.upload-to-github-release.outputs.new_version }}
+
+    secrets:
+      GIST_SECRET:
+        description: Gist secret, used to update badges
+        required: true
+      npm_token:
+        description: NPM token to publish to NPM registry
+      SSH_DEPLOY_KEY:
+        description: SSH deploy key, to copy docs to web page git repository
+        required: true
+      SSH_PRIVATE_KEY:
+        description: SSH private key, used to install git dependencies
+
+jobs:
+  # Check for version update
+  check:
+    runs-on: ubuntu-latest
+
+    outputs:
+      new_version: ${{ steps.check.outputs.new_version }}
+
+    steps:
+      # Checkout
+      - uses: actions/checkout@v4
+
+      # Check for version update
+      - name: Check for version update
+        id: check
+        run: |
+          function getLatestVersion() {
+            local latestVersion
+
+            # Check if the package is hosted on GitHub Packages Registry
+            if [[ "$packageName" == *@*/* ]]; then
+              local tagsInfo=$(gh api repos/${packageName:1}/tags)
+              latestVersion=$(echo "$tagsInfo" | jq -r '.[0].name' | cut -c 2-)
+            else
+              latestVersion=$(npm show "$packageName" version)
+            fi
+
+            echo "$latestVersion"
+          }
+
+          function getPackageJsonVersion() {
+            jq -r '.version' ./package.json
+          }
+
+          function compareVersions() {
+            local latestVersion=$1
+            local pkgJsonVersion=$2
+
+            if [[ "$latestVersion" < "$pkgJsonVersion" ]]; then
+              echo \
+                "Published version ${latestVersion} is older than version" \
+                "${pkgJsonVersion} from the package.json file. Maybe there's " \
+                "a mistake in the package.json version?" \
+                >&2
+
+              exit 1
+            fi
+
+            if [[ "$latestVersion" == "$pkgJsonVersion" ]]; then
+              echo \
+                "Version ${pkgJsonVersion} in the package.json file is equal" \
+                "to the latest published version." \
+                >&2
+
+              exit
+            fi
+          }
+
+          packageName="${{ inputs.reference-package-name }}"
+
+          pkgJsonVersion=$(getPackageJsonVersion)
+          latestVersion=$(getLatestVersion)
+
+          compareVersions "$latestVersion" "$pkgJsonVersion"
+
+          echo "old version: $pkgJsonVersion"
+          echo "new version: ${latestVersion}"
+          echo "new_version=${latestVersion}" >> "$GITHUB_OUTPUT"
+
+  # Update version and dependencies
+  update:
+    needs: check
+    if: ${{ needs.check.outputs.new_version != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      # Init
+      - name: init
+        uses: Mafalda-SFU/Github-Actions-init@v1
+        with:
+          node_auth_token: ${{ inputs.node_auth_token }}
+          node-version: ${{ inputs.node-version }}
+          registry-url: ${{ inputs.registry-url }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Update
+      - name: Update package version
+        run: |
+          tmpfile=$(mktemp)
+
+          cp package.json "$tmpfile" &&
+          jq \
+            --arg version "${{ needs.check.outputs.new_version }}" \
+            '.version |= $version' \
+            "$tmpfile" \
+          > package.json &&
+          rm -f "$tmpfile"
+
+      - name: Update latest dependencies
+        if: ${{ inputs.dependencies-update-latest != '' }}
+        run: |
+          npx npm-check-updates \
+            --target latest \
+            --upgrade ${{ inputs.dependencies-update-latest }}
+
+      - name: Update semver dependencies
+        run: npx npm-check-updates --target semver --upgrade
+
+      - name: Install updated dependencies
+        run: npm install --verbose
+        env:
+          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token }}
+
+      # Tests
+      - name: Install test reporters
+        run: |
+          if npm list jest >/dev/null 2>&1; then
+            npm install --no-save --verbose \
+              @matteoh2o1999/github-actions-jest-reporter
+          else
+            npm install --no-save --verbose \
+              node-test-github-reporter
+          fi
+
+      - name: Run tests with updated dependencies
+        run: |
+          if npm list jest >/dev/null 2>&1; then
+            npm test -- \
+              --reporters=@matteoh2o1999/github-actions-jest-reporter
+          else
+            NODE_OPTIONS=`echo "
+              --test-reporter=spec
+                --test-reporter-destination=stdout
+              --test-reporter=node-test-github-reporter
+                --test-reporter-destination=stderr
+            " | tr -d '\r\n'` \
+              npm test
+          fi
+
+        # Commit and push changes
+      - name: Commit and push changes
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          git add .
+          git commit \
+            -m "chore(deps): update to ${{ inputs.reference-package-name }}@${{ needs.check.outputs.new_version }}"
+          git tag "${{ needs.check.outputs.new_version }}"
+
+          git push
+          git push --tags
+
+  # Generate docs
+  docs:
+    needs: [check, update]
+    runs-on: ubuntu-latest
+
+    steps:
+      # Init
+      - name: init
+        uses: Mafalda-SFU/Github-Actions-init@v1
+        with:
+          node_auth_token: ${{ inputs.node_auth_token }}
+          node-version: ${{ inputs.node-version }}
+          ref: ${{ needs.check.outputs.new_version }}
+          registry-url: ${{ inputs.registry-url }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Generate docs
+      - run: npm run docs
+
+      # Publish docs
+      - name: Publish docs
+        uses: cpina/github-action-push-to-another-repository@v1.5.1
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+        with:
+          destination-github-username: ${{ inputs.destination-github-username }}
+          destination-repository-name: ${{ inputs.destination-repository-name }}
+          source-directory: ${{ inputs.source-directory }}
+          target-directory: docs/${{ github.event.repository.name }}
+          user-email: ${{ inputs.user-email }}
+          user-name: ${{ inputs.user-name }}
+
+      # Docs coverage
+      - run: npm run docs:coverage
+      - name: Docs coverage
+        run: |
+          export DOCS_COVERAGE=$(cat doc-coverage/docCoverageReport.json | jq .jsdocCoverage.coveragePercent)
+
+          echo "docsCoverage=$DOCS_COVERAGE" >> $GITHUB_ENV
+          echo "### Docs coverage: ${DOCS_COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+
+      - name: Docs coverage badge
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          filename: ${{ github.event.repository.name }}.json
+          gistID: ${{ inputs.docs-coverage_gistID }}
+          label: Docs coverage
+          maxColorRange: 90
+          message: ${{ env.docsCoverage }}%
+          minColorRange: 50
+          namedLogo: readdotcv
+          valColorRange: ${{ env.docsCoverage }}
+
+
+  #
+  # Publish to registries and GitHub release
+  #
+
+  # GitHub Package Registry
+  publish-gpr:
+    needs: [check, update]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+
+    steps:
+      # Init
+      - name: init
+        uses: Mafalda-SFU/Github-Actions-init@v1
+        with:
+          node_auth_token: ${{ inputs.node_auth_token }}
+          node-version: ${{ inputs.node-version }}
+          ref: ${{ needs.check.outputs.new_version }}
+          registry-url: https://npm.pkg.github.com/
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Publish
+      - run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{inputs.node_auth_token}}
+
+      # Badge
+      - name: Github Package Registry version badge
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          filename: ${{ github.event.repository.name }}.json
+          gistID: ${{ inputs.gpr-npm-version_gistID }}
+          label: 📦 GPR/npm
+          message: ${{ needs.check.outputs.new_version }}
+
+  # NPM registry
+  publish-npm-registry:
+    needs: [check, update]
+    if: secrets.npm_token
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+
+    steps:
+      # Init
+      - name: init
+        uses: Mafalda-SFU/Github-Actions-init@v1
+        with:
+          node_auth_token: ${{ inputs.node_auth_token }}
+          node-version: ${{ inputs.node-version }}
+          ref: ${{ needs.check.outputs.new_version }}
+          registry-url: https://registry.npmjs.org/
+
+      # Publish
+      - run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+
+  # GitHub release
+  upload-to-github-release:
+    needs: [check, update]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      # Init
+      - name: init
+        uses: Mafalda-SFU/Github-Actions-init@v1
+        with:
+          node_auth_token: ${{ inputs.node_auth_token }}
+          node-version: ${{ inputs.node-version }}
+          ref: ${{ needs.check.outputs.new_version }}
+          registry-url: ${{ inputs.registry-url }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Create package
+      - run: npm pack
+
+      # Create release
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: '*.tgz'
+          generate_release_notes: true
+          tag_name: ${{ needs.check.outputs.new_version }}
+          # --verify-tag
+
+      # Notify release was created
+      - name: Notify release was created
+        run: |
+          echo "new_version=${{ needs.check.outputs.new_version }}" >> "$GITHUB_OUTPUT"

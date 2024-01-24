@@ -1,0 +1,130 @@
+name: main + schedule
+
+on:
+  workflow_call:
+    inputs:
+      # common
+      node_auth_token:
+        description: Node auth token to use to install git dependencies
+        default: ${{ secrets.GITHUB_TOKEN }}
+        type: string
+      node-version:
+        description: Node version to use
+        type: string
+      registry-url:
+        description: NPM registry URL to use
+        type: string
+
+      # main
+      code-coverage-gistid:
+        description: Code coverage gist ID
+        required: true
+        type: string
+
+      # schedule
+      reference-package-name:
+        description: Reference package name to check for version update
+        required: true
+        type: string
+
+      # schedule / Update
+      dependencies-update-latest:
+        description: Dependencies to update to latest version, can be a glob
+        type: string
+
+      # schedule / Docs
+      destination-github-username:
+        description: GitHub username to use to push docs to web page git repository
+        default: ${{ github.repository_owner }}
+        type: string
+      destination-repository-name:
+        description: Repository name to use to push docs to web page git repository
+        required: true
+        type: string
+      docs-coverage_gistID:
+        description: Docs coverage gist ID
+        required: true
+        type: string
+      source-directory:
+        description: Source directory to copy to web page git repository
+        default: docs
+        type: string
+      user-email:
+        description: User email to use to push docs to web page git repository
+        required: true
+        type: string
+      user-name:
+        description: User name to use to push docs to web page git repository
+        default: ${{ github.actor }}
+        type: string
+
+      # schedule / Publish GitHub Packages Registry
+      gpr-npm-version_gistID:
+        description: GPR npm version gist ID
+        required: true
+        type: string
+
+    outputs:
+      new_version:
+        description: New version to update to
+        value: ${{ steps.schedule.outputs.new_version }}
+
+    secrets:
+      # common
+      SSH_PRIVATE_KEY:
+        description: SSH private key
+        required: true
+
+      # schedule
+      GIST_SECRET:
+        description: Gist secret, used to update badges
+        required: true
+      npm_token:
+        description: NPM token to publish to NPM registry
+      SSH_DEPLOY_KEY:
+        description: SSH deploy key, to copy docs to web page git repository
+        required: true
+
+jobs:
+  main:
+    uses: ./main.yml
+
+    with:
+      code-coverage-gistid: ${{ inputs.code-coverage-gistid }}
+      node_auth_token: ${{ inputs.node_auth_token }}
+      node-version: ${{ inputs.node-version }}
+      registry-url: ${{ inputs.registry-url }}
+
+    secrets:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+  schedule:
+    needs: main
+    uses: ./schedule.yml
+
+    with:
+      # common
+      node_auth_token: ${{ inputs.node_auth_token }}
+      node-version: ${{ inputs.node-version }}
+      reference-package-name: ${{ inputs.reference-package-name }}
+      registry-url: ${{ inputs.registry-url }}
+
+      # Update
+      dependencies-update-latest: ${{ inputs.dependencies-update-latest }}
+
+      # Docs
+      destination-github-username: ${{ inputs.destination-github-username }}
+      destination-repository-name: ${{ inputs.destination-repository-name }}
+      docs-coverage_gistID: ${{ inputs.docs-coverage-gistid }}
+      source-directory: ${{ inputs.source-directory }}
+      user-email: ${{ inputs.user-email }}
+      user-name: ${{ inputs.user-name }}
+
+      # Publish GitHub Packages Registry
+      gpr-npm-version_gistID: ${{ inputs.gpr-npm-version_gistID }}
+
+    secrets:
+      GIST_SECRET: ${{ secrets.GIST_SECRET }}
+      npm_token: ${{secrets.npm_token}}
+      SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}

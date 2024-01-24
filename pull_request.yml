@@ -1,0 +1,58 @@
+name: pull request
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node version to use
+        type: string
+      registry-url:
+        description: NPM registry URL to use
+        type: string
+    secrets:
+      SSH_PRIVATE_KEY:
+        description: SSH private key
+        required: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      # Init
+      - name: init
+        uses: Mafalda-SFU/Github-Actions-init@v1
+        with:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          node-version: ${{ inputs.node-version }}
+          registry-url: ${{ inputs.registry-url }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Tests
+      - name: Install test reporter
+        run: |
+          if npm list jest >/dev/null 2>&1; then
+            echo "Using Jest, not needed" 2>&1
+          else
+            npm install --no-save --verbose \
+              node-test-github-reporter
+          fi
+
+      - name: Run tests
+        run: |
+          if npm list jest >/dev/null 2>&1; then
+            npm test -- --reporters="github-actions" --reporters="summary"
+          else
+            NODE_OPTIONS=`echo "
+              --test-reporter=spec
+                --test-reporter-destination=stdout
+              --test-reporter=node-test-github-reporter
+                --test-reporter-destination=stderr
+            " | tr -d '\r\n'` \
+              npm test
+          fi
