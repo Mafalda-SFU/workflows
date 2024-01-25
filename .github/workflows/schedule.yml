@@ -6,7 +6,6 @@ on:
       # common
       node_auth_token:
         description: Node auth token to use to install git dependencies
-        default: ${{ secrets.GITHUB_TOKEN }}
         type: string
       node-version:
         description: Node version to use
@@ -59,7 +58,7 @@ on:
     outputs:
       new_version:
         description: New version to update to
-        value: ${{ steps.upload-to-github-release.outputs.new_version }}
+        value: ${{ jobs.upload-to-github-release.outputs.new_version }}
 
     secrets:
       GIST_SECRET:
@@ -158,7 +157,7 @@ jobs:
       - name: init
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
-          node_auth_token: ${{ inputs.node_auth_token }}
+          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
           registry-url: ${{ inputs.registry-url }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -189,7 +188,7 @@ jobs:
       - name: Install updated dependencies
         run: npm install --verbose
         env:
-          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token }}
+          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token || secrets.GITHUB_TOKEN }}
 
       # Tests
       - name: Install test reporters
@@ -241,7 +240,7 @@ jobs:
       - name: init
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
-          node_auth_token: ${{ inputs.node_auth_token }}
+          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
           ref: ${{ needs.check.outputs.new_version }}
           registry-url: ${{ inputs.registry-url }}
@@ -305,7 +304,7 @@ jobs:
       - name: init
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
-          node_auth_token: ${{ inputs.node_auth_token }}
+          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
           ref: ${{ needs.check.outputs.new_version }}
           registry-url: https://npm.pkg.github.com/
@@ -314,7 +313,7 @@ jobs:
       # Publish
       - run: npm publish --provenance
         env:
-          NODE_AUTH_TOKEN: ${{inputs.node_auth_token}}
+          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token || secrets.GITHUB_TOKEN}}
 
       # Badge
       - name: Github Package Registry version badge
@@ -329,7 +328,7 @@ jobs:
   # NPM registry
   publish-npm-registry:
     needs: [check, update]
-    if: secrets.npm_token
+    if: secrets.npm_token != ''
     runs-on: ubuntu-latest
 
     permissions:
@@ -340,7 +339,7 @@ jobs:
       - name: init
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
-          node_auth_token: ${{ inputs.node_auth_token }}
+          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
           ref: ${{ needs.check.outputs.new_version }}
           registry-url: https://registry.npmjs.org/
@@ -348,7 +347,7 @@ jobs:
       # Publish
       - run: npm publish --provenance
         env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token || secrets.GITHUB_TOKEN}}
 
   # GitHub release
   upload-to-github-release:
@@ -358,12 +357,15 @@ jobs:
     permissions:
       contents: write
 
+    outputs:
+      new_version: ${{ steps.notify.outputs.new_version }}
+
     steps:
       # Init
       - name: init
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
-          node_auth_token: ${{ inputs.node_auth_token }}
+          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
           ref: ${{ needs.check.outputs.new_version }}
           registry-url: ${{ inputs.registry-url }}
@@ -383,5 +385,6 @@ jobs:
 
       # Notify release was created
       - name: Notify release was created
+        id: notify
         run: |
           echo "new_version=${{ needs.check.outputs.new_version }}" >> "$GITHUB_OUTPUT"

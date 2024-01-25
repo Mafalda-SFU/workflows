@@ -6,7 +6,6 @@ on:
       # common
       node_auth_token:
         description: Node auth token to use to install git dependencies
-        default: ${{ secrets.GITHUB_TOKEN }}
         type: string
       node-version:
         description: Node version to use
@@ -67,7 +66,7 @@ on:
     outputs:
       new_version:
         description: New version to update to
-        value: ${{ steps.schedule.outputs.new_version }}
+        value: ${{ jobs.schedule.outputs.new_version }}
 
     secrets:
       # common
@@ -87,7 +86,7 @@ on:
 
 jobs:
   main:
-    uses: ./main.yml
+    uses: ./.github/workflows/main.yml
 
     with:
       code-coverage-gistid: ${{ inputs.code-coverage-gistid }}
@@ -100,7 +99,7 @@ jobs:
 
   schedule:
     needs: main
-    uses: ./schedule.yml
+    uses: ./.github/workflows/schedule.yml
 
     with:
       # common
@@ -115,7 +114,7 @@ jobs:
       # Docs
       destination-github-username: ${{ inputs.destination-github-username }}
       destination-repository-name: ${{ inputs.destination-repository-name }}
-      docs-coverage_gistID: ${{ inputs.docs-coverage-gistid }}
+      docs-coverage_gistID: ${{ inputs.docs-coverage_gistID }}
       source-directory: ${{ inputs.source-directory }}
       user-email: ${{ inputs.user-email }}
       user-name: ${{ inputs.user-name }}

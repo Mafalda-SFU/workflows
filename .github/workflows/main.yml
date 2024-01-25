@@ -9,7 +9,6 @@ on:
         type: string
       node_auth_token:
         description: Node auth token to use to install git dependencies
-        default: ${{ secrets.GITHUB_TOKEN }}
         type: string
       node-version:
         description: Node version to use
@@ -37,7 +36,7 @@ jobs:
       - name: init
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
-          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token }}
+          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
           registry-url: ${{ inputs.registry-url }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}

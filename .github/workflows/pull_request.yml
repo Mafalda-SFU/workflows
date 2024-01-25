@@ -12,7 +12,6 @@ on:
     secrets:
       SSH_PRIVATE_KEY:
         description: SSH private key
-        default: ${{ secrets.SSH_PRIVATE_KEY }}
 
 jobs:
   test:
