@@ -87,6 +87,8 @@ jobs:
       # Check for version update
       - name: Check for version update
         id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           function getLatestVersion() {
             local latestVersion
