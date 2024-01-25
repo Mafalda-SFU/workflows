@@ -34,7 +34,6 @@ on:
       # schedule / Docs
       destination-github-username:
         description: GitHub username to use to push docs to web page git repository
-        default: ${{ github.repository_owner }}
         type: string
       destination-repository-name:
         description: Repository name to use to push docs to web page git repository
@@ -46,7 +45,6 @@ on:
         type: string
       source-directory:
         description: Source directory to copy to web page git repository
-        default: docs
         type: string
       user-email:
         description: User email to use to push docs to web page git repository
@@ -54,7 +52,6 @@ on:
         type: string
       user-name:
         description: User name to use to push docs to web page git repository
-        default: ${{ github.actor }}
         type: string
 
       # schedule / Publish GitHub Packages Registry
