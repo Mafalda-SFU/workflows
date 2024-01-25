@@ -329,15 +329,21 @@ jobs:
   # NPM registry
   publish-npm-registry:
     needs: [check, update]
-    if: secrets.npm_token != ''
+    # if: secrets.npm_token != ''
     runs-on: ubuntu-latest
 
     permissions:
       id-token: write
 
     steps:
+      # HACK: see https://github.com/actions/runner/issues/520#issuecomment-720508121
+      - name: has secret
+        id: has_secret
+        run: echo '::set-output name=npm_token::${{secrets.npm_token != ''}}'
+
       # Init
       - name: init
+        if: steps.has_secret.outputs.npm_token
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
           NODE_AUTH_TOKEN: ${{ inputs.node_auth_token || secrets.GITHUB_TOKEN }}
@@ -347,6 +353,7 @@ jobs:
 
       # Publish
       - run: npm publish --provenance
+        if: steps.has_secret.outputs.npm_token
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm_token || secrets.GITHUB_TOKEN}}
 
