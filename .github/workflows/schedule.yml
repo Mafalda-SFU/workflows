@@ -265,10 +265,11 @@ jobs:
       # Docs coverage
       - run: npm run docs:coverage
       - name: Docs coverage
+        id: docsCoverage
         run: |
           export DOCS_COVERAGE=$(cat doc-coverage/docCoverageReport.json | jq .jsdocCoverage.coveragePercent)
 
-          echo "docsCoverage=$DOCS_COVERAGE" >> $GITHUB_ENV
+          echo "docsCoverage=$DOCS_COVERAGE" >> $GITHUB_OUTPUT
           echo "### Docs coverage: ${DOCS_COVERAGE}%" >> $GITHUB_STEP_SUMMARY
 
       - name: Docs coverage badge
@@ -279,10 +280,10 @@ jobs:
           gistID: ${{ inputs.docs-coverage_gistID }}
           label: Docs coverage
           maxColorRange: 90
-          message: ${{ env.docsCoverage }}%
+          message: ${{ steps.docsCoverage.outcome.docsCoverage }}%
           minColorRange: 50
           namedLogo: readdotcv
-          valColorRange: ${{ env.docsCoverage }}
+          valColorRange: ${{ steps.docsCoverage.outcome.docsCoverage }}
 
 
   #

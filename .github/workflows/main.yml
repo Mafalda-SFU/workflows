@@ -75,6 +75,7 @@ jobs:
           fi
 
       - name: Code coverage
+        id: codeCoverage
         run: |
           if npm list jest >/dev/null 2>&1; then
             export CODE_COVERAGE=$( \
@@ -89,7 +90,7 @@ jobs:
             )
           fi
 
-          echo "codeCoverage=$CODE_COVERAGE" >> $GITHUB_ENV
+          echo "codeCoverage=$CODE_COVERAGE" >> $GITHUB_OUTPUT
           echo "### Code coverage: ${CODE_COVERAGE}%" >> $GITHUB_STEP_SUMMARY
 
       # Code coverage badge
@@ -101,7 +102,7 @@ jobs:
           gistID: ${{ inputs.code-coverage_gistID }}
           label: Coverage
           maxColorRange: 90
-          message: ${{ env.codeCoverage }}%
+          message: ${{ steps.codeCoverage.outputs.codeCoverage }}%
           minColorRange: 50
           namedLogo: Jest
-          valColorRange: ${{ env.codeCoverage }}
+          valColorRange: ${{ steps.codeCoverage.outputs.codeCoverage }}
