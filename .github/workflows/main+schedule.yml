@@ -15,7 +15,7 @@ on:
         type: string
 
       # main
-      code-coverage-gistid:
+      code-coverage_gistID:
         description: Code coverage gist ID
         required: true
         type: string
@@ -89,7 +89,7 @@ jobs:
     uses: ./.github/workflows/main.yml
 
     with:
-      code-coverage-gistid: ${{ inputs.code-coverage-gistid }}
+      code-coverage_gistID: ${{ inputs.code-coverage_gistID }}
       node_auth_token: ${{ inputs.node_auth_token }}
       node-version: ${{ inputs.node-version }}
       registry-url: ${{ inputs.registry-url }}

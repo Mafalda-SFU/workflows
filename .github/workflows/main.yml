@@ -3,7 +3,7 @@ name: main
 on:
   workflow_call:
     inputs:
-      code-coverage-gistid:
+      code-coverage_gistID:
         description: Code coverage gist ID
         required: true
         type: string
@@ -98,7 +98,7 @@ jobs:
         with:
           auth: ${{ secrets.GIST_SECRET }}
           filename: ${{ github.event.repository.name }}.json
-          gistID: ${{ inputs.code-coverage-gistid }}
+          gistID: ${{ inputs.code-coverage_gistID }}
           label: Coverage
           maxColorRange: 90
           message: ${{ env.codeCoverage }}%
