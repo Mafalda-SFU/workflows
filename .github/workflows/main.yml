@@ -18,6 +18,9 @@ on:
         type: string
 
     secrets:
+      GIST_SECRET:
+        description: Gist secret, used to update badges
+        required: true
       SSH_PRIVATE_KEY:
         description: SSH private key
         required: true
