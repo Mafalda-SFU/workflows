@@ -252,7 +252,7 @@ jobs:
 
       # Publish docs
       - name: Publish docs
-        uses: cpina/github-action-push-to-another-repository@v1.5.1
+        uses: cpina/github-action-push-to-another-repository@v1.7.2
         env:
           SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
         with:
