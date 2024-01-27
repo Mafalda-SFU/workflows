@@ -9,6 +9,7 @@ on:
       registry-url:
         description: NPM registry URL to use
         type: string
+
     secrets:
       NODE_AUTH_TOKEN:
         description: Node auth token to use to install git dependencies

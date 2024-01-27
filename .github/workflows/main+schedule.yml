@@ -64,6 +64,9 @@ on:
 
     secrets:
       # common
+      GIST_SECRET:
+        description: Gist secret, used to update badges
+        required: true
       NODE_AUTH_TOKEN:
         description: Node auth token to use to install git dependencies
       SSH_PRIVATE_KEY:
@@ -71,9 +74,6 @@ on:
         required: true
 
       # schedule
-      GIST_SECRET:
-        description: Gist secret, used to update badges
-        required: true
       npm_token:
         description: NPM token to publish to NPM registry
       SSH_DEPLOY_KEY:
@@ -119,8 +119,10 @@ jobs:
       gpr-npm-version_gistID: ${{ inputs.gpr-npm-version_gistID }}
 
     secrets:
+      # common
       GIST_SECRET: ${{ secrets.GIST_SECRET }}
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
       npm_token: ${{secrets.npm_token}}
       SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
-      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}

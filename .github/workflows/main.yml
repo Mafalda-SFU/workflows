@@ -43,7 +43,7 @@ jobs:
           registry-url: ${{ inputs.registry-url }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # Tests
+      # Run tests and get code coverage
       - name: Install test reporters
         run: |
           if npm list jest >/dev/null 2>&1; then
