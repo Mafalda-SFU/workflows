@@ -4,9 +4,6 @@ on:
   workflow_call:
     inputs:
       # common
-      node_auth_token:
-        description: Node auth token to use to install git dependencies
-        type: string
       node-version:
         description: Node version to use
         type: string
@@ -67,6 +64,8 @@ on:
 
     secrets:
       # common
+      NODE_AUTH_TOKEN:
+        description: Node auth token to use to install git dependencies
       SSH_PRIVATE_KEY:
         description: SSH private key
         required: true
@@ -87,12 +86,12 @@ jobs:
 
     with:
       code-coverage_gistID: ${{ inputs.code-coverage_gistID }}
-      node_auth_token: ${{ inputs.node_auth_token }}
       node-version: ${{ inputs.node-version }}
       registry-url: ${{ inputs.registry-url }}
 
     secrets:
       GIST_SECRET: ${{ secrets.GIST_SECRET }}
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
   schedule:
@@ -101,7 +100,6 @@ jobs:
 
     with:
       # common
-      node_auth_token: ${{ inputs.node_auth_token }}
       node-version: ${{ inputs.node-version }}
       reference-package-name: ${{ inputs.reference-package-name }}
       registry-url: ${{ inputs.registry-url }}
@@ -122,6 +120,7 @@ jobs:
 
     secrets:
       GIST_SECRET: ${{ secrets.GIST_SECRET }}
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
       npm_token: ${{secrets.npm_token}}
       SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}

@@ -7,9 +7,6 @@ on:
         description: Code coverage gist ID
         required: true
         type: string
-      node_auth_token:
-        description: Node auth token to use to install git dependencies
-        type: string
       node-version:
         description: Node version to use
         type: string
@@ -21,6 +18,8 @@ on:
       GIST_SECRET:
         description: Gist secret, used to update badges
         required: true
+      NODE_AUTH_TOKEN:
+        description: Node auth token to use to install git dependencies
       SSH_PRIVATE_KEY:
         description: SSH private key
         required: true
@@ -39,7 +38,7 @@ jobs:
       - name: init
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
-          NODE_AUTH_TOKEN: ${{ inputs.node_auth_token || secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
           registry-url: ${{ inputs.registry-url }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
