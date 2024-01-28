@@ -12,10 +12,9 @@ on:
 
     secrets:
       NODE_AUTH_TOKEN:
-        description: Node auth token to use to install git dependencies
+        description: Node auth token to use to install dependencies from GPR
       SSH_PRIVATE_KEY:
-        description: SSH private key
-        required: true
+        description: SSH private key for git dependencies
 
 jobs:
   test_and_coverage:
