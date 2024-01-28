@@ -202,10 +202,8 @@ jobs:
       # Tests
       - name: Run tests with updated dependencies
         run: |
-          scriptTest=`node -p \"require('./package.json').scripts.test\"`
-
           # No tests, build package instead as a basic test and to publish it
-          if [[ "$scriptTest" == "" ]]; then
+          if [[ ! node -p "require('./package.json').scripts.test" ]]; then
             npm run build
 
           # Jest test runner
