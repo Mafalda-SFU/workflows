@@ -201,6 +201,8 @@ jobs:
 
       # Tests
       - name: Run tests with updated dependencies
+        env:
+          FORCE_COLOR: 1
         run: |
           # No tests, build package instead as a basic test and to publish it
           if ! node -p "require('./package.json').scripts.test" &> /dev/null ; then
