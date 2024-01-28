@@ -19,6 +19,9 @@ on:
       dependencies-update-latest:
         description: Dependencies to update to latest version, can be a glob
         type: string
+      update-script:
+        description: Script to run to update the package
+        type: string
 
       # Docs
       destination-github-username:
@@ -163,6 +166,11 @@ jobs:
           registry-url: ${{ inputs.registry-url }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      # Update source code
+      - name: Update source code
+        if: ${{ inputs.update-script != '' }}
+        run: ${{ inputs.update-script }} ${{ needs.check.outputs.new_version }}
+
       # Update
       - name: Update package version
         run: |
@@ -192,22 +200,27 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
 
       # Tests
-      - name: Install test reporters
+      - name: Run tests with updated dependencies
         run: |
-          if npm list jest >/dev/null 2>&1; then
+          scriptTest=`node -p \"require('./package.json').scripts.test\"`
+
+          # No tests, build package instead as a basic test and to publish it
+          if [[ "$scriptTest" == "" ]]; then
+            npm run build
+
+          # Jest test runner
+          elif npm list jest >/dev/null 2>&1; then
             npm install --no-save --verbose \
               @matteoh2o1999/github-actions-jest-reporter
+
+            npm test -- \
+              --reporters=@matteoh2o1999/github-actions-jest-reporter
+
+          # Node.js built-in test runner
           else
             npm install --no-save --verbose \
               node-test-github-reporter
-          fi
 
-      - name: Run tests with updated dependencies
-        run: |
-          if npm list jest >/dev/null 2>&1; then
-            npm test -- \
-              --reporters=@matteoh2o1999/github-actions-jest-reporter
-          else
             NODE_OPTIONS=`echo "
               --test-reporter=spec
                 --test-reporter-destination=stdout
