@@ -203,7 +203,7 @@ jobs:
       - name: Run tests with updated dependencies
         run: |
           # No tests, build package instead as a basic test and to publish it
-          if node -p "require('./package.json').scripts.test" &> /dev/null ; then
+          if ! node -p "require('./package.json').scripts.test" &> /dev/null ; then
             npm run build
 
           # Jest test runner
