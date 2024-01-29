@@ -134,9 +134,9 @@ jobs:
             # Compare major versions
             if [[ $latestMajor -lt $pkgJsonMajor ]]; then
               echo \
-                "Published version $latestVersion is older than version" \
-                "$pkgJsonVersion from the package.json file. Maybe there's a" \
-                "mistake in the package.json version?" \
+                "Published version $latestVersion of ${packageName} is older" \
+                "than version $pkgJsonVersion from the package.json file." \
+                "Maybe there's a mistake in the package.json version?" \
                 >&2
 
               return 1
@@ -148,9 +148,9 @@ jobs:
               $latestMinor -lt $pkgJsonMinor \
             ]]; then
               echo \
-                "Published version $latestVersion is older than version" \
-                "$pkgJsonVersion from the package.json file. Maybe there's a" \
-                "mistake in the package.json version?" \
+                "Published version $latestVersion of ${packageName} is older" \
+                "than version $pkgJsonVersion from the package.json file." \
+                "Maybe there's a mistake in the package.json version?" \
                 >&2
 
               return 2
@@ -165,9 +165,10 @@ jobs:
               if [[ $pkgJsonPrerelease == "" ]]; then
                 if [[ $latestPatch -lt $pkgJsonPatch ]]; then
                   echo \
-                    "Published version $latestVersion is older than version" \
-                    "$pkgJsonVersion from the package.json file. Maybe" \
-                    "there's a mistake in the package.json version?" \
+                    "Published version $latestVersion of ${packageName} is" \
+                    "older than version $pkgJsonVersion from the package.json" \
+                    "file. Maybe there's a mistake in the package.json" \
+                    "version?" \
                   >&2
 
                   return 3
@@ -178,9 +179,10 @@ jobs:
                   # Latest is prerelease
                   if [[ $latestPrerelease != "" ]]; then
                     echo \
-                      "Published version $latestVersion is older than version" \
-                      "$pkgJsonVersion from the package.json file. Maybe" \
-                      "there's a mistake in the package.json version?" \
+                      "Published version $latestVersion of ${packageName} is" \
+                      "older than version $pkgJsonVersion from the" \
+                      "package.json file. Maybe there's a mistake in the" \
+                      "package.json version?" \
                     >&2
 
                     return 4
@@ -189,7 +191,7 @@ jobs:
                   # Versions are equal
                   echo \
                     "Version ${pkgJsonVersion} in the package.json file is" \
-                    "equal to the latest published version." \
+                    "equal to the latest published version of ${packageName}." \
                   >&2
 
                   return -1
@@ -199,9 +201,10 @@ jobs:
               elif [[ $latestPrerelease != "" ]]; then
                 if [[ $latestPatch -lt $pkgJsonPatch ]]; then
                   echo \
-                    "Published version $latestVersion is older than version" \
-                    "$pkgJsonVersion from the package.json file. Maybe" \
-                    "there's a mistake in the package.json version?" \
+                    "Published version $latestVersion of ${packageName} is" \
+                    "older than version $pkgJsonVersion from the package.json" \
+                    "file. Maybe there's a mistake in the package.json" \
+                    "version?" \
                   >&2
 
                   return 5
@@ -211,9 +214,10 @@ jobs:
                 if [[ $latestPatch -eq $pkgJsonPatch ]]; then
                   if [[ $latestPrerelease -lt $pkgJsonPrerelease ]]; then
                     echo \
-                      "Published version $latestVersion is older than version" \
-                      "$pkgJsonVersion from the package.json file. Maybe" \
-                      "there's a mistake in the package.json version?" \
+                      "Published version $latestVersion of ${packageName} is" \
+                      "older than version $pkgJsonVersion from the" \
+                      "package.json file. Maybe there's a mistake in the" \
+                      "package.json version?" \
                     >&2
 
                     return 6
@@ -223,7 +227,8 @@ jobs:
                   if [[ $latestPrerelease -eq $pkgJsonPrerelease ]]; then
                     echo \
                       "Version ${pkgJsonVersion} in the package.json file" \
-                      "is equal to the latest published version." \
+                      "is equal to the latest published version of" \
+                      "${packageName}." \
                     >&2
 
                     return -1
@@ -238,9 +243,10 @@ jobs:
 
                 if [[ $incrementedPatch -lt $pkgJsonPatch ]]; then
                   echo \
-                    "Published version $latestVersion is older than version" \
-                    "$pkgJsonVersion from the package.json file. Maybe" \
-                    "there's a mistake in the package.json version?" \
+                    "Published version $latestVersion of ${packageName} is" \
+                    "older than version $pkgJsonVersion from the package.json" \
+                    "file. Maybe there's a mistake in the package.json" \
+                    "version?" \
                   >&2
 
                   return 7
@@ -253,7 +259,8 @@ jobs:
                 if [[ $incrementedPatch -eq $pkgJsonPatch ]]; then
                   echo \
                     "Version ${pkgJsonVersion} in the package.json file" \
-                    "is a prerelease prepared for the next published version." \
+                    "is a prerelease prepared for the next published version" \
+                    "of ${packageName}." \
                   >&2
 
                   return -1
