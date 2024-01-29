@@ -379,7 +379,7 @@ jobs:
         with:
           node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
-          ref: ${{ needs.check.outputs.new_version }}
+          ref: "v${{ needs.check.outputs.new_version }}"
           registry-url: ${{ inputs.registry-url }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -444,7 +444,7 @@ jobs:
         with:
           node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
-          ref: ${{ needs.check.outputs.new_version }}
+          ref: "v${{ needs.check.outputs.new_version }}"
           registry-url: https://npm.pkg.github.com/
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -485,7 +485,7 @@ jobs:
         with:
           node_auth_token: ${{ secrets.npm_token }}
           node-version: ${{ inputs.node-version }}
-          ref: ${{ needs.check.outputs.new_version }}
+          ref: "v${{ needs.check.outputs.new_version }}"
           registry-url: https://registry.npmjs.org/
 
       # Publish
@@ -512,7 +512,7 @@ jobs:
         with:
           node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
-          ref: ${{ needs.check.outputs.new_version }}
+          ref: "v${{ needs.check.outputs.new_version }}"
           registry-url: ${{ inputs.registry-url }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
