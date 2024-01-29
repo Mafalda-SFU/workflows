@@ -37,4 +37,4 @@ jobs:
 
       # Run tests
       - name: Run tests
-        uses: ./actions/run-tests
+        uses: Mafalda-SFU/Github-Actions-run-tests@v1
