@@ -38,7 +38,7 @@ jobs:
       - name: init
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+          node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
           registry-url: ${{ inputs.registry-url }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
