@@ -92,6 +92,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set +e
+
           function getLatestVersion() {
             local latestVersion
 
@@ -274,10 +276,8 @@ jobs:
           pkgJsonVersion=$(getPackageJsonVersion)
           latestVersion=$(getLatestVersion)
 
-          set +e
           compareVersions "$latestVersion" "$pkgJsonVersion"
           exitCode=$?
-          set -e
 
           if [[ $exitCode -eq -1 ]]; then
             echo "### Version ${pkgJsonVersion} in the package.json file is" \
