@@ -279,7 +279,7 @@ jobs:
           compareVersions "$latestVersion" "$pkgJsonVersion"
           exitCode=$?
 
-          if [[ $exitCode -eq -1 ]]; then
+          if [[ $exitCode -eq 255 ]]; then
             echo "### Version ${pkgJsonVersion} in the package.json file is" \
               "equal to the latest published version. No action required." \
             >> "$GITHUB_STEP_SUMMARY"
