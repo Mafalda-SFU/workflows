@@ -362,7 +362,7 @@ jobs:
           git add .
           git commit \
             -m "chore(deps): update to ${{ inputs.reference-package-name }}@${{ needs.check.outputs.new_version }}"
-          git tag "${{ needs.check.outputs.new_version }}"
+          git tag "v${{ needs.check.outputs.new_version }}"
 
           git push
           git push --tags
