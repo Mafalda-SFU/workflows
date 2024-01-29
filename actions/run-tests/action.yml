@@ -1,0 +1,11 @@
+name: Run tests
+author: Jesús Leganés-Combarro 'piranna' (http://piranna.github.io/)
+description: Detect and run tests, for Jest, Node.js `test`, or build by default
+
+runs:
+  using: composite
+  steps:
+    - run: ./actions/run-tests/bin.sh
+      shell: bash
+      env:
+        FORCE_COLOR: '1'
