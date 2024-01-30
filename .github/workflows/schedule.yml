@@ -34,7 +34,6 @@ on:
         type: string
       docs-coverage_gistID:
         description: Gist ID to update the docs coverage badge
-        required: true
         type: string
       source-directory:
         description: Source directory to copy to web page git repository
@@ -370,6 +369,7 @@ jobs:
   # Generate docs
   docs:
     needs: [check, update]
+    if: ${{ inputs.docs-coverage_gistID }}
     runs-on: ubuntu-latest
 
     steps:
