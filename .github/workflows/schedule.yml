@@ -449,9 +449,10 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       # Publish
-      - run: npm publish --provenance
+      - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN}}
+          npm_config_provenance: ${{ secrets.npm_token != '' }}
 
       # Badge
       - name: Github Package Registry version badge
