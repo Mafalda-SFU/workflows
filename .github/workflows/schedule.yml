@@ -67,7 +67,7 @@ on:
         required: true
       NODE_AUTH_TOKEN:
         description: Node auth token to use to install git dependencies
-      npm_token:
+      NPM_TOKEN:
         description: NPM token to publish to NPM registry
       SSH_DEPLOY_KEY:
         description: SSH deploy key, to copy docs to web page git repository
@@ -454,7 +454,7 @@ jobs:
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN}}
-          NPM_CONFIG_PROVENANCE: ${{ secrets.npm_token != '' }}
+          NPM_CONFIG_PROVENANCE: ${{ secrets.NPM_TOKEN != '' }}
 
       # Badge
       - name: Github Package Registry version badge
@@ -469,7 +469,7 @@ jobs:
   # NPM registry
   publish-npm-registry:
     needs: [check, update]
-    # if: secrets.npm_token != ''
+    # if: secrets.NPM_TOKEN != ''
     runs-on: ubuntu-latest
 
     permissions:
@@ -479,14 +479,14 @@ jobs:
       # HACK: see https://github.com/actions/runner/issues/520#issuecomment-720508121
       - name: has secret
         id: has_secret
-        run: echo '::set-output name=npm_token::${{secrets.npm_token != ''}}'
+        run: echo "npm_token=${{secrets.NPM_TOKEN != ''}}" >> $GITHUB_OUTPUT
 
       # Init
       - name: init
         if: steps.has_secret.outputs.npm_token
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
-          node_auth_token: ${{ secrets.npm_token }}
+          node_auth_token: ${{ secrets.NPM_TOKEN }}
           node-version: ${{ inputs.node-version }}
           ref: "v${{ needs.check.outputs.new_version }}"
           registry-url: https://registry.npmjs.org/
@@ -495,7 +495,7 @@ jobs:
       - run: npm publish --provenance
         if: steps.has_secret.outputs.npm_token
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # GitHub release
   upload-to-github-release:

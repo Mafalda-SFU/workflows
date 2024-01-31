@@ -74,7 +74,7 @@ on:
         required: true
 
       # schedule
-      npm_token:
+      NPM_TOKEN:
         description: NPM token to publish to NPM registry
       SSH_DEPLOY_KEY:
         description: SSH deploy key, to copy docs to web page git repository
@@ -124,5 +124,6 @@ jobs:
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      npm_token: ${{secrets.npm_token}}
+      # schedule
+      NPM_TOKEN: ${{secrets.NPM_TOKEN}}
       SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
