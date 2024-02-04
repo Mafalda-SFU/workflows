@@ -351,9 +351,13 @@ jobs:
           npx npm-check-updates \
             --target latest \
             --upgrade ${{ inputs.dependencies-update-latest }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Update semver dependencies
         run: npx npm-check-updates --target semver --upgrade
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Install updated dependencies
         run: npm install --verbose
