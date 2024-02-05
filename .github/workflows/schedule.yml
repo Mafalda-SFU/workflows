@@ -493,7 +493,7 @@ jobs:
       # HACK: see https://github.com/actions/runner/issues/520#issuecomment-720508121
       - name: has secret
         id: has_secret
-        run: echo "npm_token=${{secrets.NPM_TOKEN != ''}}" >> $GITHUB_OUTPUT
+        run: echo "npm_token=${{ secrets.NPM_TOKEN != '' }}" >> $GITHUB_OUTPUT
 
       # Init
       - name: init
