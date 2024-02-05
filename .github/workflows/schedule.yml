@@ -468,7 +468,7 @@ jobs:
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN}}
-          NPM_CONFIG_PROVENANCE: ${{ secrets.NPM_TOKEN != '' }}
+          NPM_CONFIG_PROVENANCE: ${{ secrets.NPM_TOKEN == '' }}
 
       # Badge
       - name: Github Package Registry version badge
