@@ -62,6 +62,8 @@ on:
         value: ${{ jobs.upload-to-github-release.outputs.new_version }}
 
     secrets:
+      GH_TOKEN:
+        description: GitHub token to use to check for version update
       GIST_SECRET:
         description: Gist secret, used to update badges
         required: true
@@ -95,7 +97,7 @@ jobs:
       - name: Check for version update
         id: check
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           function getLatestVersion() {
             local latestVersion

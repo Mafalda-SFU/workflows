@@ -74,6 +74,8 @@ on:
         required: true
 
       # schedule
+      GH_TOKEN:
+        description: GitHub token to use to check for version update
       NPM_TOKEN:
         description: NPM token to publish to NPM registry
       SSH_DEPLOY_KEY:
@@ -125,5 +127,6 @@ jobs:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       # schedule
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
       NPM_TOKEN: ${{secrets.NPM_TOKEN}}
       SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
