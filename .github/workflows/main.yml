@@ -45,6 +45,8 @@ jobs:
 
       # Run tests and get code coverage
       - name: Install test reporters
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           if npm list jest >/dev/null 2>&1; then
             npm install --no-save --verbose \

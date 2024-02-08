@@ -37,6 +37,8 @@ jobs:
 
       # Tests
       - name: Install test reporter
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           if npm list jest >/dev/null 2>&1; then
             echo "Using Jest, not needed" 2>&1
