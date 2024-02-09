@@ -104,9 +104,14 @@ jobs:
 
             # Check if the package is hosted on GitHub Packages Registry
             if [[ "$packageName" == *@*/* ]]; then
-              local tagsInfo=$(gh api repos/${packageName:1}/tags)
+              IFS='/' read -ra packageScopeAndName <<< "$packageName"
 
-              if [[ $tagsInfo == *"Not Found"* ]]; then
+              local packagesInfo=$(
+                gh api \
+                  orgs/${packageScopeAndName[0]:1}/packages/npm/${packageScopeAndName[1]}/versions
+              )
+
+              if [[ $packagesInfo == *"Not Found"* ]]; then
                 echo \
                   "Package ${packageName} not found on GitHub Packages" \
                   "Registry" \
@@ -115,7 +120,7 @@ jobs:
                 exit 1
               fi
 
-              latestVersion=$(echo "$tagsInfo" | jq -r '.[0].name' | cut -c 2-)
+              latestVersion=$(echo "$packagesInfo" | jq --raw-output '.[0].name')
             else
               latestVersion=$(npm show "$packageName" version)
             fi
