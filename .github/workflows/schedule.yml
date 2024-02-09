@@ -479,7 +479,7 @@ jobs:
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN}}
-          NPM_CONFIG_PROVENANCE: ${{ secrets.NPM_TOKEN == '' }}
+          NPM_CONFIG_PROVENANCE: ${{ secrets.NPM_TOKEN != '' }}
 
       # Badge
       - name: Github Package Registry version badge
@@ -508,7 +508,7 @@ jobs:
 
       # Init
       - name: init
-        if: steps.has_secret.outputs.npm_token
+        if: steps.has_secret.outputs.npm_token == 'true'
         uses: Mafalda-SFU/Github-Actions-init@v1
         with:
           node_auth_token: ${{ secrets.NPM_TOKEN }}
@@ -518,7 +518,7 @@ jobs:
 
       # Publish
       - run: npm publish --provenance
-        if: steps.has_secret.outputs.npm_token
+        if: steps.has_secret.outputs.npm_token == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -529,6 +529,7 @@ jobs:
 
     permissions:
       contents: write
+      packages: read
 
     outputs:
       new_version: ${{ steps.notify.outputs.new_version }}
