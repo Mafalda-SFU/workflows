@@ -366,11 +366,10 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
 
-      # See https://github.com/raineorshine/npm-check-updates/pull/1368
-      # - name: Update semver dependencies
-      #   run: npx npm-check-updates --target semver --upgrade
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+      - name: Update semver dependencies
+        run: npx npm-check-updates --target semver --upgrade
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Install updated dependencies
         run: npm install --verbose
