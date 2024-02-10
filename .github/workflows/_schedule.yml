@@ -1,0 +1,494 @@
+name: check, update, and publish in Github Packages Registry
+
+on:
+  workflow_call:
+    inputs:
+      # common
+      node-version:
+        description: Node version to use
+        type: string
+      reference-package-name:
+        description: Reference package name to check for version update
+        required: true
+        type: string
+      registry-url:
+        description: NPM registry URL to use
+        type: string
+
+      # Update
+      dependencies-update-latest:
+        description: Dependencies to update to latest version, can be a glob
+        type: string
+      update-script:
+        description: Script to run to update the package
+        type: string
+
+      # Docs
+      destination-github-username:
+        description: GitHub username to use to push docs to web page git repository
+        default: ${{ github.repository_owner }}
+        type: string
+      destination-repository-name:
+        description: Repository name to use to push docs to web page git repository
+        required: true
+        type: string
+      docs-coverage_gistID:
+        description: Gist ID to update the docs coverage badge
+        type: string
+      source-directory:
+        description: Source directory to copy to web page git repository
+        default: docs
+        type: string
+
+      # See https://github.com/actions/checkout/issues/13#issuecomment-724415212
+      user-email:
+        description: User email to use to push docs to web page git repository
+        default: 41898282+github-actions[bot]@users.noreply.github.com
+        type: string
+      user-name:
+        description: User name to use to push docs to web page git repository
+        default: github-actions[bot]
+        type: string
+
+      # Publish Github Package Registry
+      gpr-npm-version_gistID:
+        description: Gist ID to update the GitHub Package Registry badge
+        required: true
+        type: string
+      NPM_CONFIG_PROVENANCE:
+        description: Should use NPM publish provenance
+        type: boolean
+
+    outputs:
+      new_version:
+        description: New version to update to
+        value: ${{ jobs.check.outputs.new_version }}
+
+    secrets:
+      GH_TOKEN:
+        description: GitHub token to use to check for version update
+      GIST_SECRET:
+        description: Gist secret, used to update badges
+        required: true
+      NODE_AUTH_TOKEN:
+        description: Node auth token to use to install git dependencies
+      SSH_DEPLOY_KEY:
+        description: SSH deploy key, to copy docs to web page git repository
+        required: true
+      SSH_PRIVATE_KEY:
+        description: SSH private key, used to install git dependencies
+
+jobs:
+  # Check for version update
+  check:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: read
+
+    outputs:
+      new_version: ${{ steps.check.outputs.new_version }}
+
+    steps:
+      # Checkout
+      - uses: actions/checkout@v4
+
+      # Check for version update
+      - name: Check for version update
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          function getLatestVersion() {
+            local latestVersion
+
+            # Check if the package is hosted on GitHub Packages Registry
+            if [[ "$packageName" == *@*/* ]]; then
+              IFS='/' read -ra packageScopeAndName <<< "$packageName"
+
+              local packagesInfo=$(
+                gh api \
+                  orgs/${packageScopeAndName[0]:1}/packages/npm/${packageScopeAndName[1]}/versions
+              )
+
+              if [[ $packagesInfo == *"Not Found"* ]]; then
+                echo \
+                  "Package ${packageName} not found on GitHub Packages" \
+                  "Registry" \
+                >&2
+
+                exit 1
+              fi
+
+              latestVersion=$(echo "$packagesInfo" | jq --raw-output '.[0].name')
+            else
+              latestVersion=$(npm show "$packageName" version)
+            fi
+
+            echo "$latestVersion"
+          }
+
+          function getPackageJsonVersion() {
+            jq -r '.version' ./package.json
+          }
+
+          function compareVersions() {
+            local latestVersion=$1
+            local pkgJsonVersion=$2
+
+            # Split the versions into major, minor, patch, and prerelease parts
+            IFS='-' read -ra latestVersionBaseAndPrerelease <<< "$latestVersion"
+            IFS='-' read -ra pkgJsonVersionBaseAndPrerelease <<< "$pkgJsonVersion"
+
+            IFS='.' read -ra latestVersionParts <<< "${latestVersionBaseAndPrerelease[0]}"
+            IFS='.' read -ra pkgJsonVersionParts <<< "${pkgJsonVersionBaseAndPrerelease[0]}"
+
+            local latestMajor=${latestVersionParts[0]}
+            local latestMinor=${latestVersionParts[1]:-0}
+            local latestPatch=${latestVersionParts[2]:-0}
+            local latestPrerelease=${latestVersionBaseAndPrerelease[1]}
+
+            local pkgJsonMajor=${pkgJsonVersionParts[0]}
+            local pkgJsonMinor=${pkgJsonVersionParts[1]:-0}
+            local pkgJsonPatch=${pkgJsonVersionParts[2]:-0}
+            local pkgJsonPrerelease=${pkgJsonVersionBaseAndPrerelease[1]}
+
+            # Compare major versions
+            if [[ $latestMajor -lt $pkgJsonMajor ]]; then
+              echo \
+                "Published version $latestVersion of ${packageName} is older" \
+                "than version $pkgJsonVersion from the package.json file." \
+                "Maybe there's a mistake in the package.json version?" \
+                >&2
+
+              return 1
+            fi
+
+            # Compare minor versions
+            if [[ \
+              $latestMajor -eq $pkgJsonMajor && \
+              $latestMinor -lt $pkgJsonMinor \
+            ]]; then
+              echo \
+                "Published version $latestVersion of ${packageName} is older" \
+                "than version $pkgJsonVersion from the package.json file." \
+                "Maybe there's a mistake in the package.json version?" \
+                >&2
+
+              return 2
+            fi
+
+            if [[ \
+              $latestMajor -eq $pkgJsonMajor && \
+              $latestMinor -eq $pkgJsonMinor \
+            ]]; then
+
+              # Compare patch versions
+              if [[ $pkgJsonPrerelease == "" ]]; then
+                if [[ $latestPatch -lt $pkgJsonPatch ]]; then
+                  echo \
+                    "Published version $latestVersion of ${packageName} is" \
+                    "older than version $pkgJsonVersion from the package.json" \
+                    "file. Maybe there's a mistake in the package.json" \
+                    "version?" \
+                  >&2
+
+                  return 3
+                fi
+
+                if [[ $latestPatch -eq $pkgJsonPatch ]]; then
+
+                  # Latest is prerelease
+                  if [[ $latestPrerelease != "" ]]; then
+                    echo \
+                      "Published version $latestVersion of ${packageName} is" \
+                      "older than version $pkgJsonVersion from the" \
+                      "package.json file. Maybe there's a mistake in the" \
+                      "package.json version?" \
+                    >&2
+
+                    return 4
+                  fi
+
+                  # Versions are equal
+                  echo \
+                    "Version ${pkgJsonVersion} in the package.json file is" \
+                    "equal to the latest published version of ${packageName}." \
+                  >&2
+
+                  return -1
+                fi
+
+              # Compare prereleases
+              elif [[ $latestPrerelease != "" ]]; then
+                if [[ $latestPatch -lt $pkgJsonPatch ]]; then
+                  echo \
+                    "Published version $latestVersion of ${packageName} is" \
+                    "older than version $pkgJsonVersion from the package.json" \
+                    "file. Maybe there's a mistake in the package.json" \
+                    "version?" \
+                  >&2
+
+                  return 5
+                fi
+
+                # Same patch
+                if [[ $latestPatch -eq $pkgJsonPatch ]]; then
+                  if [[ $latestPrerelease -lt $pkgJsonPrerelease ]]; then
+                    echo \
+                      "Published version $latestVersion of ${packageName} is" \
+                      "older than version $pkgJsonVersion from the" \
+                      "package.json file. Maybe there's a mistake in the" \
+                      "package.json version?" \
+                    >&2
+
+                    return 6
+                  fi
+
+                  # Versions are equal, including prerelease
+                  if [[ $latestPrerelease -eq $pkgJsonPrerelease ]]; then
+                    echo \
+                      "Version ${pkgJsonVersion} in the package.json file" \
+                      "is equal to the latest published version of" \
+                      "${packageName}." \
+                    >&2
+
+                    return -1
+                  fi
+                fi
+
+              elif [[ $latestPatch -lt $pkgJsonPatch ]]; then
+
+                # Increment the latest version's patch version to compare with
+                # the prerelease
+                local incrementedPatch=$((latestPatch + 1))
+
+                if [[ $incrementedPatch -lt $pkgJsonPatch ]]; then
+                  echo \
+                    "Published version $latestVersion of ${packageName} is" \
+                    "older than version $pkgJsonVersion from the package.json" \
+                    "file. Maybe there's a mistake in the package.json" \
+                    "version?" \
+                  >&2
+
+                  return 7
+                fi
+
+                # Special case: since we are comparing with third-party package,
+                # we accept as equal in case we added a prerelease version for
+                # the same patch version, in advance of the third-party package
+                # publishing a new patch version.
+                if [[ $incrementedPatch -eq $pkgJsonPatch ]]; then
+                  echo \
+                    "Version ${pkgJsonVersion} in the package.json file" \
+                    "is a prerelease prepared for the next published version" \
+                    "of ${packageName}." \
+                  >&2
+
+                  return -1
+                fi
+              fi
+            fi
+          }
+
+          packageName="${{ inputs.reference-package-name }}"
+
+          pkgJsonVersion=$(getPackageJsonVersion)
+          latestVersion=$(getLatestVersion)
+
+          set +e # Capture exit code
+          compareVersions "$latestVersion" "$pkgJsonVersion"
+          exitCode=$?
+          set -e # End capture of exit codes
+
+          if [[ $exitCode -eq 255 ]]; then
+            echo "### Version ${pkgJsonVersion} in the package.json file is" \
+              "equal to the latest published version. No action required." \
+            >> "$GITHUB_STEP_SUMMARY"
+
+            exit
+          fi
+
+          if [[ $exitCode -ne 0 ]]; then
+            exit $exitCode
+          fi
+
+          echo "old version: $pkgJsonVersion"
+          echo "new version: ${latestVersion}"
+          echo "new_version=${latestVersion}" >> "$GITHUB_OUTPUT"
+
+  # Update version and dependencies
+  update:
+    needs: check
+    if: ${{ needs.check.outputs.new_version != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+      # Init
+      - name: init
+        uses: Mafalda-SFU/Github-Actions-init@v1
+        with:
+          node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+          node-version: ${{ inputs.node-version }}
+          registry-url: ${{ inputs.registry-url }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Update source code
+      - name: Update source code
+        if: ${{ inputs.update-script != '' }}
+        run: ${{ inputs.update-script }} ${{ needs.check.outputs.new_version }}
+
+      # Update
+      - name: Update package version
+        run: |
+          tmpfile=$(mktemp)
+
+          cp package.json "$tmpfile" &&
+          jq \
+            --arg version "${{ needs.check.outputs.new_version }}" \
+            '.version |= $version' \
+            "$tmpfile" \
+          > package.json &&
+          rm -f "$tmpfile"
+
+      - name: Update latest dependencies
+        if: ${{ inputs.dependencies-update-latest != '' }}
+        run: |
+          npx npm-check-updates \
+            --target latest \
+            --upgrade ${{ inputs.dependencies-update-latest }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # See https://github.com/raineorshine/npm-check-updates/pull/1368
+      # - name: Update semver dependencies
+      #   run: npx npm-check-updates --target semver --upgrade
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Install updated dependencies
+        run: npm install --verbose
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # Tests
+      - name: Run tests with updated dependencies
+        uses: Mafalda-SFU/Github-Actions-run-tests@v1
+
+        # Commit and push changes
+      - name: Commit and push changes
+        run: |
+          git config user.email ${{ inputs.user-email }}
+          git config user.name "${{ inputs.user-name }}"
+
+          git add .
+          git commit \
+            -m "chore(deps): update to ${{ inputs.reference-package-name }}@${{ needs.check.outputs.new_version }}"
+          git tag "v${{ needs.check.outputs.new_version }}"
+
+          git push
+          git push --tags
+
+  # Generate docs
+  docs:
+    needs: [check, update]
+    if: ${{ inputs.docs-coverage_gistID }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # Init
+      - name: init
+        uses: Mafalda-SFU/Github-Actions-init@v1
+        with:
+          node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+          node-version: ${{ inputs.node-version }}
+          ref: "v${{ needs.check.outputs.new_version }}"
+          registry-url: ${{ inputs.registry-url }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Generate docs
+      - run: npm run docs
+
+      # Publish docs
+      - name: Publish docs
+        uses: cpina/github-action-push-to-another-repository@v1.7.2
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+        with:
+          destination-github-username: ${{ inputs.destination-github-username }}
+          destination-repository-name: ${{ inputs.destination-repository-name }}
+          source-directory: ${{ inputs.source-directory }}
+          target-directory: docs/${{ github.event.repository.name }}
+          user-email: ${{ inputs.user-email }}
+          user-name: ${{ inputs.user-name }}
+
+      # Docs coverage
+      - run: npm run docs:coverage
+      - name: Docs coverage
+        id: docsCoverage
+        run: |
+          export DOCS_COVERAGE=$(cat doc-coverage/docCoverageReport.json | jq .jsdocCoverage.coveragePercent)
+
+          echo "docsCoverage=$DOCS_COVERAGE" >> $GITHUB_OUTPUT
+          echo "### Docs coverage: ${DOCS_COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+
+      - name: Docs coverage badge
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          filename: ${{ github.event.repository.name }}.json
+          gistID: ${{ inputs.docs-coverage_gistID }}
+          label: Docs coverage
+          maxColorRange: 90
+          message: ${{ steps.docsCoverage.outcome.docsCoverage }}%
+          minColorRange: 50
+          namedLogo: readdotcv
+          valColorRange: ${{ steps.docsCoverage.outcome.docsCoverage }}
+
+
+  #
+  # Publish to registries and GitHub release
+  #
+
+  # GitHub Package Registry
+  publish-gpr:
+    needs: [check, update]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+
+    steps:
+      # Init
+      - name: init
+        uses: Mafalda-SFU/Github-Actions-init@v1
+        with:
+          node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+          node-version: ${{ inputs.node-version }}
+          ref: "v${{ needs.check.outputs.new_version }}"
+          registry-url: https://npm.pkg.github.com/
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Publish
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN}}
+          NPM_CONFIG_PROVENANCE: ${{ inputs.NPM_CONFIG_PROVENANCE }}
+
+      # Badge
+      - name: Github Package Registry version badge
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          filename: ${{ github.event.repository.name }}.json
+          gistID: ${{ inputs.gpr-npm-version_gistID }}
+          label: 📦 GPR/npm
+          message: ${{ needs.check.outputs.new_version }}
