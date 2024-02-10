@@ -111,6 +111,7 @@ jobs:
   # NPM registry
   publish-npm-registry:
     needs: _schedule
+    if: ${{ needs._schedule.outputs.new_version != '' }}
     runs-on: ubuntu-latest
 
     permissions:
@@ -134,6 +135,7 @@ jobs:
   # GitHub release
   upload-to-github-release:
     needs: _schedule
+    if: ${{ needs._schedule.outputs.new_version != '' }}
     runs-on: ubuntu-latest
 
     permissions:
