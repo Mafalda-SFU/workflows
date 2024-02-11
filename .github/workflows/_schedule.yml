@@ -62,7 +62,7 @@ on:
     outputs:
       new_version:
         description: New version to update to
-        value: ${{ jobs.check.outputs.new_version }}
+        value: ${{ jobs.check-and-update.outputs.new_version }}
 
     secrets:
       GH_TOKEN:
@@ -80,19 +80,26 @@ on:
 
 jobs:
   # Check for version update
-  check:
+  check-and-update:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     permissions:
-      contents: read
+      contents: write
       packages: read
 
     outputs:
       new_version: ${{ steps.check.outputs.new_version }}
 
     steps:
-      # Checkout
-      - uses: actions/checkout@v4
+      # Init
+      - name: init
+        uses: Mafalda-SFU/Github-Actions-init@v1
+        with:
+          node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+          node-version: ${{ inputs.node-version }}
+          registry-url: ${{ inputs.registry-url }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       # Check for version update
       - name: Check for version update
@@ -318,86 +325,25 @@ jobs:
           echo "new version: ${latestVersion}"
           echo "new_version=${latestVersion}" >> "$GITHUB_OUTPUT"
 
-  # Update version and dependencies
-  update:
-    needs: check
-    if: ${{ needs.check.outputs.new_version != '' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    permissions:
-      contents: write
-      packages: read
-
-    steps:
-      # Init
-      - name: init
-        uses: Mafalda-SFU/Github-Actions-init@v1
+      # Update version and dependencies
+      - name: Update version and dependencies
+        if: ${{ steps.check.outputs.new_version != '' }}
+        uses: mafalda-sfu/Github-Actions-update@v1
         with:
-          node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
-          node-version: ${{ inputs.node-version }}
-          registry-url: ${{ inputs.registry-url }}
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          dependencies-update-latest: ${{ inputs.dependencies-update-latest }}
+          new_version: ${{ steps.check.outputs.new_version }}
+          node_auth_token: ${{ secrets.node_auth_token || secrets.GITHUB_TOKEN }}
+          reference-package-name: ${{ inputs.reference-package-name }}
+          update-script: ${{ inputs.update-script }}
+          user-email: ${{ inputs.user-email }}
+          user-name: ${{ inputs.user-name }}
 
-      # Update source code
-      - name: Update source code
-        if: ${{ inputs.update-script != '' }}
-        run: ${{ inputs.update-script }} ${{ needs.check.outputs.new_version }}
-
-      # Update
-      - name: Update package version
-        run: |
-          tmpfile=$(mktemp)
-
-          cp package.json "$tmpfile" &&
-          jq \
-            --arg version "${{ needs.check.outputs.new_version }}" \
-            '.version |= $version' \
-            "$tmpfile" \
-          > package.json &&
-          rm -f "$tmpfile"
-
-      - name: Update latest dependencies
-        if: ${{ inputs.dependencies-update-latest != '' }}
-        run: |
-          npx npm-check-updates \
-            --target latest \
-            --upgrade ${{ inputs.dependencies-update-latest }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
-
-      - name: Update semver dependencies
-        run: npx npm-check-updates --target semver --upgrade
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
-
-      - name: Install updated dependencies
-        run: npm install --verbose
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
-
-      # Tests
-      - name: Run tests with updated dependencies
-        uses: Mafalda-SFU/Github-Actions-run-tests@v1
-
-        # Commit and push changes
-      - name: Commit and push changes
-        run: |
-          git config user.email ${{ inputs.user-email }}
-          git config user.name "${{ inputs.user-name }}"
-
-          git add .
-          git commit \
-            -m "chore(deps): update to ${{ inputs.reference-package-name }}@${{ needs.check.outputs.new_version }}"
-          git tag "v${{ needs.check.outputs.new_version }}"
-
-          git push
-          git push --tags
 
   # Generate docs
   docs:
-    needs: [check, update]
-    if: ${{ inputs.docs-coverage_gistID }}
+    if: ${{ needs.check-and-update.outputs.new_version && inputs.docs-coverage_gistID }}
+
+    needs: check-and-update
     runs-on: ubuntu-latest
 
     steps:
@@ -407,7 +353,7 @@ jobs:
         with:
           node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
-          ref: "v${{ needs.check.outputs.new_version }}"
+          ref: "v${{ needs.check-and-update.outputs.new_version }}"
           registry-url: ${{ inputs.registry-url }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -457,7 +403,9 @@ jobs:
 
   # GitHub Package Registry
   publish-gpr:
-    needs: [check, update]
+    if: ${{ needs.check-and-update.outputs.new_version }}
+
+    needs: check-and-update
     runs-on: ubuntu-latest
 
     permissions:
@@ -472,7 +420,7 @@ jobs:
         with:
           node_auth_token: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
           node-version: ${{ inputs.node-version }}
-          ref: "v${{ needs.check.outputs.new_version }}"
+          ref: "v${{ needs.check-and-update.outputs.new_version }}"
           registry-url: https://npm.pkg.github.com/
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -490,4 +438,4 @@ jobs:
           filename: ${{ github.event.repository.name }}.json
           gistID: ${{ inputs.gpr-npm-version_gistID }}
           label: 📦 GPR/npm
-          message: ${{ needs.check.outputs.new_version }}
+          message: ${{ needs.check-and-update.outputs.new_version }}
