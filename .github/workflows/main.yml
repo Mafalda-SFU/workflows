@@ -106,7 +106,7 @@ jobs:
           auth: ${{ secrets.GIST_SECRET }}
           filename: ${{ github.event.repository.name }}.json
           gistID: ${{ inputs.code-coverage_gistID }}
-          label: Coverage
+          label: Code coverage
           maxColorRange: 90
           message: ${{ steps.codeCoverage.outputs.codeCoverage }}%
           minColorRange: 50
