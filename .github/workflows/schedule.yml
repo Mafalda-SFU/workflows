@@ -96,7 +96,7 @@ jobs:
 
       # Publish GitHub Packages Registry
       gpr-npm-version_gistID: ${{ inputs.gpr-npm-version_gistID }}
-      NPM_CONFIG_PROVENANCE: true
+      # NPM_CONFIG_PROVENANCE: true
 
     secrets:
       # common

@@ -55,9 +55,9 @@ on:
         description: Gist ID to update the GitHub Package Registry badge
         required: true
         type: string
-      NPM_CONFIG_PROVENANCE:
-        description: Should use NPM publish provenance
-        type: boolean
+      # NPM_CONFIG_PROVENANCE:
+      #   description: Should use NPM publish provenance
+      #   type: boolean
 
     outputs:
       new_version:
@@ -428,7 +428,7 @@ jobs:
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN}}
-          NPM_CONFIG_PROVENANCE: ${{ inputs.NPM_CONFIG_PROVENANCE }}
+          # NPM_CONFIG_PROVENANCE: ${{ inputs.NPM_CONFIG_PROVENANCE }}
 
       # Badge
       - name: Github Package Registry version badge
