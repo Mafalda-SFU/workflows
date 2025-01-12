@@ -50,6 +50,7 @@ jobs:
       - name: Run tests
         run: |
           if npm list jest >/dev/null 2>&1; then
+            # Generate report only on PRs, not on Github Actions logs
             npm test -- --reporters="github-actions" --reporters="summary"
           else
             NODE_OPTIONS=`echo "
