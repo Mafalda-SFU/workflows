@@ -240,31 +240,6 @@ jobs:
                   return 5
                 fi
 
-                # Same patch
-                if [[ $latestPatch -eq $pkgJsonPatch ]]; then
-                  if [[ $latestPrerelease -lt $pkgJsonPrerelease ]]; then
-                    echo \
-                      "Published version $latestVersion of ${packageName} is" \
-                      "older than version $pkgJsonVersion from the" \
-                      "package.json file. Maybe there's a mistake in the" \
-                      "package.json version?" \
-                    >&2
-
-                    return 6
-                  fi
-
-                  # Versions are equal, including prerelease
-                  if [[ $latestPrerelease -eq $pkgJsonPrerelease ]]; then
-                    echo \
-                      "Version ${pkgJsonVersion} in the package.json file" \
-                      "is equal to the latest published version of" \
-                      "${packageName}." \
-                    >&2
-
-                    return -1
-                  fi
-                fi
-
               elif [[ $latestPatch -lt $pkgJsonPatch ]]; then
 
                 # Increment the latest version's patch version to compare with
@@ -279,7 +254,7 @@ jobs:
                     "version?" \
                   >&2
 
-                  return 7
+                  return 6
                 fi
 
                 # Special case: since we are comparing with third-party package,
