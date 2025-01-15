@@ -227,49 +227,49 @@ jobs:
                   return -1
                 fi
 
-              # Compare prereleases
-              elif [[ $latestPrerelease != "" ]]; then
+              elif [[ $latestPrerelease == "" ]]; then
                 if [[ $latestPatch -lt $pkgJsonPatch ]]; then
-                  echo \
-                    "Published version $latestVersion of ${packageName} is" \
-                    "lower than version $pkgJsonVersion from the package.json" \
-                    "file. Maybe there's a mistake in the package.json" \
-                    "version?" \
-                  >&2
 
-                  return 5
+                  # Increment the latest version's patch version to compare with
+                  # the prerelease
+                  local incrementedPatch=$((latestPatch + 1))
+
+                  if [[ $incrementedPatch -lt $pkgJsonPatch ]]; then
+                    echo \
+                      "Published version $latestVersion of ${packageName} is" \
+                      "lower than version $pkgJsonVersion from the" \
+                      "package.json file. Maybe there's a mistake in the" \
+                      "package.json version?" \
+                    >&2
+
+                    return 5
+                  fi
+
+                  # Special case: since we are comparing with third-party
+                  # package, we accept as equal in case we added a prerelease
+                  # version for the same patch version, in advance of the
+                  # third-party package publishing a new patch version.
+                  if [[ $incrementedPatch -eq $pkgJsonPatch ]]; then
+                    echo \
+                      "Version ${pkgJsonVersion} in the package.json file" \
+                      "is a prerelease prepared for the next published" \
+                      "version of ${packageName}." \
+                    >&2
+
+                    return -1
+                  fi
                 fi
 
+              # Compare prereleases
               elif [[ $latestPatch -lt $pkgJsonPatch ]]; then
+                echo \
+                  "Published version $latestVersion of ${packageName} is" \
+                  "lower than version $pkgJsonVersion from the package.json" \
+                  "file. Maybe there's a mistake in the package.json" \
+                  "version?" \
+                >&2
 
-                # Increment the latest version's patch version to compare with
-                # the prerelease
-                local incrementedPatch=$((latestPatch + 1))
-
-                if [[ $incrementedPatch -lt $pkgJsonPatch ]]; then
-                  echo \
-                    "Published version $latestVersion of ${packageName} is" \
-                    "lower than version $pkgJsonVersion from the package.json" \
-                    "file. Maybe there's a mistake in the package.json" \
-                    "version?" \
-                  >&2
-
-                  return 6
-                fi
-
-                # Special case: since we are comparing with third-party package,
-                # we accept as equal in case we added a prerelease version for
-                # the same patch version, in advance of the third-party package
-                # publishing a new patch version.
-                if [[ $incrementedPatch -eq $pkgJsonPatch ]]; then
-                  echo \
-                    "Version ${pkgJsonVersion} in the package.json file" \
-                    "is a prerelease prepared for the next published version" \
-                    "of ${packageName}." \
-                  >&2
-
-                  return -1
-                fi
+                return 6
               fi
             fi
           }
