@@ -164,7 +164,7 @@ jobs:
             # Compare major versions
             if [[ $latestMajor -lt $pkgJsonMajor ]]; then
               echo \
-                "Published version $latestVersion of ${packageName} is older" \
+                "Published version $latestVersion of ${packageName} is lower" \
                 "than version $pkgJsonVersion from the package.json file." \
                 "Maybe there's a mistake in the package.json version?" \
                 >&2
@@ -178,7 +178,7 @@ jobs:
               $latestMinor -lt $pkgJsonMinor \
             ]]; then
               echo \
-                "Published version $latestVersion of ${packageName} is older" \
+                "Published version $latestVersion of ${packageName} is lower" \
                 "than version $pkgJsonVersion from the package.json file." \
                 "Maybe there's a mistake in the package.json version?" \
                 >&2
@@ -196,7 +196,7 @@ jobs:
                 if [[ $latestPatch -lt $pkgJsonPatch ]]; then
                   echo \
                     "Published version $latestVersion of ${packageName} is" \
-                    "older than version $pkgJsonVersion from the package.json" \
+                    "lower than version $pkgJsonVersion from the package.json" \
                     "file. Maybe there's a mistake in the package.json" \
                     "version?" \
                   >&2
@@ -210,7 +210,7 @@ jobs:
                   if [[ $latestPrerelease != "" ]]; then
                     echo \
                       "Published version $latestVersion of ${packageName} is" \
-                      "older than version $pkgJsonVersion from the" \
+                      "lower than version $pkgJsonVersion from the" \
                       "package.json file. Maybe there's a mistake in the" \
                       "package.json version?" \
                     >&2
@@ -232,7 +232,7 @@ jobs:
                 if [[ $latestPatch -lt $pkgJsonPatch ]]; then
                   echo \
                     "Published version $latestVersion of ${packageName} is" \
-                    "older than version $pkgJsonVersion from the package.json" \
+                    "lower than version $pkgJsonVersion from the package.json" \
                     "file. Maybe there's a mistake in the package.json" \
                     "version?" \
                   >&2
@@ -249,7 +249,7 @@ jobs:
                 if [[ $incrementedPatch -lt $pkgJsonPatch ]]; then
                   echo \
                     "Published version $latestVersion of ${packageName} is" \
-                    "older than version $pkgJsonVersion from the package.json" \
+                    "lower than version $pkgJsonVersion from the package.json" \
                     "file. Maybe there's a mistake in the package.json" \
                     "version?" \
                   >&2
