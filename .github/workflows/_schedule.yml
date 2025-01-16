@@ -262,18 +262,27 @@ jobs:
                     return -1
 
                   # Compare prereleases
-                  elif [[ \
-                    $latestPrerelease != "" && \
-                    $latestPatch -lt $pkgJsonPatch \
-                  ]]; then
-                    echo \
-                      "Published version $latestVersion of ${packageName} is" \
-                      "lower than version $pkgJsonVersion from the" \
-                      "package.json file. Maybe there's a mistake in the" \
-                      "package.json version?" \
-                    >&2
+                  elif [[ $latestPrerelease != "" ]]; then
+                    if [[ $latestPrerelease -lt $pkgJsonPrerelease ]]; then
+                      echo \
+                        "Published version $latestVersion of ${packageName}" \
+                        "is lower than version $pkgJsonVersion from the" \
+                        "package.json file. Maybe there's a mistake in the" \
+                        "package.json version?" \
+                      >&2
 
-                    return 6
+                      return 6
+
+                    elif [[ $latestPrerelease -eq $pkgJsonPrerelease ]]; then
+                      echo \
+                        "Version ${pkgJsonVersion} in the package.json file" \
+                        "is equal to the latest published version of" \
+                        "${packageName} up to prerelease field. No action" \
+                        "required." \
+                      >&2
+
+                      return -1
+                    fi
                   fi
                 fi
               fi
