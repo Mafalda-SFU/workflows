@@ -227,8 +227,8 @@ jobs:
                   if [[ $incrementedPatch -eq $pkgJsonPatch ]]; then
                     echo \
                       "Version ${pkgJsonVersion} in the package.json file is" \
-                      "a prerelease prepared for the next published version" \
-                      "of ${packageName}. No action required." \
+                      "a prerelease ready for the next published version of" \
+                      "${packageName}. No action required." \
                     >&2
 
                     return -1
@@ -237,6 +237,7 @@ jobs:
 
                 if [[ $latestPatch -eq $pkgJsonPatch ]]; then
 
+                  # No prerelease in the package.json file
                   if [[ $pkgJsonPrerelease == "" ]]; then
 
                     # Latest is prerelease
@@ -255,7 +256,7 @@ jobs:
                     echo \
                       "Version ${pkgJsonVersion} in the package.json file is" \
                       "equal to the latest published version of" \
-                      "${packageName}. No action required." \
+                      "${packageName} up to minor field. No action required." \
                     >&2
 
                     return -1
