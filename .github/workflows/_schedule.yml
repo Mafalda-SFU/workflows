@@ -381,10 +381,10 @@ jobs:
           gistID: ${{ inputs.docs-coverage_gistID }}
           label: Docs coverage
           maxColorRange: 90
-          message: ${{ steps.docsCoverage.outcome.docsCoverage }}%
+          message: ${{ steps.docsCoverage.outputs.docsCoverage }}%
           minColorRange: 50
           namedLogo: readdotcv
-          valColorRange: ${{ steps.docsCoverage.outcome.docsCoverage }}
+          valColorRange: ${{ steps.docsCoverage.outputs.docsCoverage }}
 
 
   #
