@@ -265,10 +265,10 @@ jobs:
                   elif [[ $latestPrerelease != "" ]]; then
                     if [[ $latestPrerelease -le $pkgJsonPrerelease ]]; then
                       echo \
-                        "Latest published version of ${packageName} is" \
-                        "equal or greater to the version ${pkgJsonVersion}" \
-                        "in the package.json file up to prerelease field." \
-                        "No action required." \
+                        "Latest published prerelease version of" \
+                        "${packageName} is less or equal to the prerelease" \
+                        "version ${pkgJsonVersion} in the package.json. No" \
+                        "action required." \
                       >&2
 
                       return -1
